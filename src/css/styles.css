@@ -1,0 +1,29 @@
+/* Custom CSS Variables */
+:root {
+    /* Можете да промените цветовете според предпочитанията си */
+    --primary: #1e88e5;
+    --primary-hover: #1976d2;
+    --primary-focus: rgba(30, 136, 229, 0.125);
+    
+    /* Spacing */
+    --spacing: 1rem;
+    --typography-spacing-vertical: 1.5rem;
+  }
+  
+  /* Custom styles */
+  .event-item {
+    margin-bottom: var(--spacing);
+    padding: var(--spacing);
+    border-left: 3px solid var(--primary);
+    background-color: var(--card-background-color);
+  }
+  
+  .event-type {
+    color: var(--primary);
+    font-weight: bold;
+  }
+  
+  .event-path {
+    margin-top: 0.5rem;
+    word-break: break-all;
+  }

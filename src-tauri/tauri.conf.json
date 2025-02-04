@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "rust-watcher",
   "version": "0.1.0",
-  "identifier": "com.rust-watcher.app",
+  "identifier": "dev.rust-watcher.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
