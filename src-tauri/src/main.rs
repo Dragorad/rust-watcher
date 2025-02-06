@@ -1,5 +1,5 @@
 mod config {
-    pub mod directory;
+    pub mod directory_crud_manager;
 }
 
 mod storage {
@@ -14,25 +14,9 @@ mod utilities;
 use tauri::{Builder, generate_context, RunEvent};
 use tauri_plugin_log::{Target, Builder as LogBuilder, LogLevel, TargetKind};
 
-use crate::config::directory::{load_configs_from_file, save_configs_to_file, DirectoryConfig};
-use tauri::command;
-
-const CONFIG_FILE: &str = "directory_configs.json";
-
-#[command]
-fn add_directory(
-    path: String,
-    days: Vec<String>,
-    hours: String,
-    frequency: u32,
-) -> Result<(), String> {
-    let mut configs = load_configs_from_file(CONFIG_FILE).map_err(|e| e.to_string())?;
-    let new_config = DirectoryConfig::new(path, days, hours, frequency);
-    configs.push(new_config);
-    save_configs_to_file(&configs, CONFIG_FILE).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
+use crate::config::directory_crud_manager::{
+    add_directory, get_directories, update_directory, delete_directory,
+};
 
 fn main() {
     let log_plugin = LogBuilder::new()
@@ -46,6 +30,12 @@ fn main() {
 
     Builder::default()
         .plugin(log_plugin)
+        .invoke_handler(tauri::generate_handler![
+            add_directory,
+            get_directories,
+            update_directory,
+            delete_directory
+        ])
         .setup(|_app_handle| {
             utilities::log_message(LogLevel::Info, "Application has started");
             Ok(())

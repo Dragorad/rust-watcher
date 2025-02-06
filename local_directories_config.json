@@ -1,0 +1,28 @@
+[
+  {
+    "path": "D:\\ProgWork\\DrGitHub",
+    "days": [
+      "вторник",
+      " четвъртък"
+    ],
+    "hours": "12:00-17:00",
+    "frequency": 2
+  },
+  {
+    "path": "D:\\ProgWork",
+    "days": [
+      "вторник",
+      " сряда",
+      " четвъртък",
+      " петък"
+    ],
+    "hours": "12:00-17:00",
+    "frequency": 30
+  },
+  {
+    "path": "\\\\192.168.33.20\\ZaPisi_EfiR\\DEN_SLED_DEN",
+    "days": [],
+    "hours": "",
+    "frequency": 30
+  }
+]
