@@ -1,5 +1,6 @@
 mod config {
     pub mod directory_crud_manager;
+    pub mod directory_paths_config;
 }
 
 mod storage {
@@ -17,6 +18,7 @@ use tauri_plugin_log::{Target, Builder as LogBuilder, LogLevel, TargetKind};
 use crate::config::directory_crud_manager::{
     add_directory, get_directories, update_directory, delete_directory,
 };
+use crate::config::directory_paths_config::{load_network_and_local_configs, save_network_config, save_local_config};
 
 fn main() {
     let log_plugin = LogBuilder::new()
@@ -34,7 +36,10 @@ fn main() {
             add_directory,
             get_directories,
             update_directory,
-            delete_directory
+            delete_directory,
+            load_network_and_local_configs, // Регистриране на командите
+            save_network_config,
+            save_local_config
         ])
         .setup(|_app_handle| {
             utilities::log_message(LogLevel::Info, "Application has started");

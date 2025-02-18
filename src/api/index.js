@@ -1,5 +1,39 @@
 import { invoke } from '@tauri-apps/api/core';
 
+// Извличане на директориите от мрежов и локален конфигурационен файл
+export async function loadNetworkAndLocalConfigs(networkConfigPath, localConfigPath) {
+  try {
+    const [networkConfigs, localConfigs] = await invoke('load_network_and_local_configs', {
+      networkConfigPath,
+      localConfigPath,
+    });
+    return { networkConfigs, localConfigs };
+  } catch (error) {
+    console.error('Failed to load network and local configs:', error);
+    return { networkConfigs: [], localConfigs: [] };
+  }
+}
+
+// Записване на мрежовите конфигурации
+export async function saveNetworkConfig(configs, networkConfigPath) {
+  try {
+    await invoke('save_network_config', { configs, networkConfigPath });
+    console.log('Network config saved successfully');
+  } catch (error) {
+    console.error('Failed to save network config:', error);
+  }
+}
+
+// Записване на локалните конфигурации
+export async function saveLocalConfig(configs, localConfigPath) {
+  try {
+    await invoke('save_local_config', { configs, localConfigPath });
+    console.log('Local config saved successfully');
+  } catch (error) {
+    console.error('Failed to save local config:', error);
+  }
+}
+
 // Добавяне на директория
 export async function addDirectory(path, days, hours, frequency) {
   try {

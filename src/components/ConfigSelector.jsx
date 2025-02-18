@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
+import ConfigContext from '../context/ConfigContext.jsx'
 
 function ConfigSelector() {
-  const [globalConfigPath, setGlobalConfigPath] = useState('');
-  const [localConfigPath, setLocalConfigPath] = useState('');
+  const { setGlobalConfigPath, setLocalConfigPath } = useContext(ConfigContext);
 
-  const handleGlobalConfigChange = (event) => {
-    setGlobalConfigPath(event.target.files[0].path);
-  };
+  const handleConfigChange = (event, type) => {
+    try {
+      const filePath = event.target.files[0]?.path;
+      if (!filePath) {
+        throw new Error('No file selected');
+      }
 
-  const handleLocalConfigChange = (event) => {
-    console.log(event.target);
-    setLocalConfigPath(event.target.files[0].path);
+      if (type === 'global') {
+        setGlobalConfigPath(filePath);
+      } else {
+        setLocalConfigPath(filePath);
+      }
+    } catch (error) {
+      console.error('Error selecting config file:', error);
+    }
   };
 
   return (
@@ -19,18 +27,14 @@ function ConfigSelector() {
       <div>
         <label>
           Global Config:
-          <input type="file" onChange={handleGlobalConfigChange} />
+          <input type="file" onChange={(event) => handleConfigChange(event, 'global')} />
         </label>
       </div>
       <div>
         <label>
           Local Config:
-          <input type="file" onChange={handleLocalConfigChange} />
+          <input type="file" onChange={(event) => handleConfigChange(event, 'local')} />
         </label>
-      </div>
-      <div>
-        <p>Global Config Path: {globalConfigPath}</p>
-        <p>Local Config Path: {localConfigPath}</p>
       </div>
     </div>
   );
