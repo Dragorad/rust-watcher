@@ -12,13 +12,16 @@ mod watcher {
 }
 mod utilities;
 
-use tauri::{Builder, generate_context, RunEvent};
-use tauri_plugin_log::{Target, Builder as LogBuilder, LogLevel, TargetKind};
+use tauri::{generate_context, Builder, RunEvent};
+use tauri_plugin_log::{Builder as LogBuilder, LogLevel, Target, TargetKind};
 
 use crate::config::directory_crud_manager::{
-    add_directory, get_directories, update_directory, delete_directory,
+    add_directory, delete_directory, get_directories, update_directory,
 };
-use crate::config::directory_paths_config::{load_network_and_local_configs, save_network_config, save_local_config};
+use crate::config::directory_paths_config::{
+    ensure_config_file_exists, load_network_and_local_configs, save_local_config,
+    save_network_config,
+};
 
 fn main() {
     let log_plugin = LogBuilder::new()
@@ -39,7 +42,8 @@ fn main() {
             delete_directory,
             load_network_and_local_configs, // Регистриране на командите
             save_network_config,
-            save_local_config
+            save_local_config,
+            ensure_config_file_exists
         ])
         .setup(|_app_handle| {
             utilities::log_message(LogLevel::Info, "Application has started");

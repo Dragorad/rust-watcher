@@ -1,23 +1,34 @@
-import React, { useContext } from 'react';
-import ConfigContext from '../context/ConfigContext.jsx'
+import React, { useState, useContext } from 'react';
+import { ensureConfigFileExists } from '../api'; // Импортиране на API функцията
+import ConfigContext from '../context/ConfigContext.jsx';
 
 function ConfigSelector() {
   const { setGlobalConfigPath, setLocalConfigPath } = useContext(ConfigContext);
+  const [localPath, setLocalPath] = useState('');
+  const [globalPath, setGlobalPath] = useState('');
 
-  const handleConfigChange = (event, type) => {
-    try {
-      const filePath = event.target.files[0]?.path;
-      if (!filePath) {
-        throw new Error('No file selected');
-      }
+  const handleFileChange = (event, isGlobal) => {
+    const filePath = event.target.files[0]?.path;
+    if (isGlobal) {
+      setGlobalPath(filePath || '');
+    } else {
+      setLocalPath(filePath || '');
+    }
+  };
 
-      if (type === 'global') {
-        setGlobalConfigPath(filePath);
-      } else {
-        setLocalConfigPath(filePath);
+  const handleConfirm = async (isGlobal) => {
+    const directoryPath = isGlobal ? globalPath : localPath;
+    if (directoryPath) {
+      try {
+        const filePath = await ensureConfigFileExists(directoryPath, isGlobal);
+        if (isGlobal) {
+          setGlobalConfigPath(filePath);
+        } else {
+          setLocalConfigPath(filePath);
+        }
+      } catch (error) {
+        console.error('Failed to ensure config file exists:', error);
       }
-    } catch (error) {
-      console.error('Error selecting config file:', error);
     }
   };
 
@@ -27,14 +38,16 @@ function ConfigSelector() {
       <div>
         <label>
           Global Config:
-          <input type="file" onChange={(event) => handleConfigChange(event, 'global')} />
+          <input type="file" onChange={(event) => handleFileChange(event, true)} />
         </label>
+        <button onClick={() => handleConfirm(true)}>Confirm Global</button>
       </div>
       <div>
         <label>
           Local Config:
-          <input type="file" onChange={(event) => handleConfigChange(event, 'local')} />
+          <input type="file" onChange={(event) => handleFileChange(event, false)} />
         </label>
+        <button onClick={() => handleConfirm(false)}>Confirm Local</button>
       </div>
     </div>
   );

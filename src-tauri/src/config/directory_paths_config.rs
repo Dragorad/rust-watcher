@@ -28,7 +28,8 @@ pub fn load_network_and_local_configs(
     network_config_path: PathBuf,
     local_config_path: PathBuf,
 ) -> Result<(Vec<DirectoryConfig>, Vec<DirectoryConfig>), String> {
-    let network_configs = load_configs_from_file(&network_config_path).map_err(|e| e.to_string())?;
+    let network_configs =
+        load_configs_from_file(&network_config_path).map_err(|e| e.to_string())?;
     let local_configs = load_configs_from_file(&local_config_path).map_err(|e| e.to_string())?;
 
     Ok((network_configs, local_configs))
@@ -65,4 +66,21 @@ fn load_configs_from_file(file_path: &PathBuf) -> io::Result<Vec<DirectoryConfig
         Err(ref e) if e.kind() == ErrorKind::NotFound => Ok(Vec::new()), // Ако файлът не съществува, връщаме празен вектор
         Err(e) => Err(e),
     }
+}
+
+#[command]
+pub fn ensure_config_file_exists(directory: PathBuf, is_global: bool) -> Result<(), String> {
+    let file_name = if is_global {
+        "global_config.json"
+    } else {
+        "local_config.json"
+    };
+
+    let mut file_path = directory;
+    file_path.push(file_name);
+
+    if !file_path.exists() {
+        fs::File::create(&file_path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }

@@ -1,5 +1,5 @@
+use log::{debug, error, info, warn};
 use tauri_plugin_log::LogLevel;
-use log::{info, warn, error, debug};
 
 pub fn log_message(level: LogLevel, message: &str) {
     match level {

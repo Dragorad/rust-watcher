@@ -108,12 +108,12 @@
 //     }
 // }
 
+use crate::utilities::log_message;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
 use tauri::command;
-use crate::utilities::log_message;
 use tauri_plugin_log::LogLevel;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -189,7 +189,10 @@ pub fn update_directory(
             println!("Error saving directories: {}", e);
             e.to_string()
         })?;
-        log_message(LogLevel::Info, &format!("Updated directory at index {}: {}", index, path));
+        log_message(
+            LogLevel::Info,
+            &format!("Updated directory at index {}: {}", index, path),
+        );
         Ok(())
     } else {
         Err("Index out of bounds".to_string())
@@ -209,7 +212,10 @@ pub fn delete_directory(index: usize, config_path: PathBuf) -> Result<(), String
             println!("Error saving directories: {}", e);
             e.to_string()
         })?;
-        log_message(LogLevel::Info, &format!("Deleted directory: {}", removed.path));
+        log_message(
+            LogLevel::Info,
+            &format!("Deleted directory: {}", removed.path),
+        );
         Ok(())
     } else {
         Err("Index out of bounds".to_string())

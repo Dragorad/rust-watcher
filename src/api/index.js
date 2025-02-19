@@ -79,3 +79,17 @@ export async function startWatching() {
     console.error('Failed to start watching directories:', error);
   }
 }
+
+// Уверява се, че конфигурационният файл съществува, като го създава, ако липсва
+export async function ensureConfigFileExists(directoryPath, isGlobal) {
+  const fileName = isGlobal ? "global_config.json" : "local_config.json";
+  const filePath = `${directoryPath}/${fileName}`;
+
+  try {
+    await invoke('ensure_config_file_exists', { directory: directoryPath, is_global: isGlobal });
+    return filePath; // Връща пълния път за използване в компонентите
+  } catch (error) {
+    console.error('Failed to ensure config file exists:', error);
+    throw error;
+  }
+}
