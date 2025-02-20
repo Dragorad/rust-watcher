@@ -3,6 +3,8 @@ use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::PathBuf;
 use tauri::command;
+use crate::utilities::log_message;
+use tauri_plugin_log::LogLevel;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DirectoryConfig {
@@ -68,6 +70,7 @@ fn load_configs_from_file(file_path: &PathBuf) -> io::Result<Vec<DirectoryConfig
     }
 }
 
+
 #[command]
 pub fn ensure_config_file_exists(directory: PathBuf, is_global: bool) -> Result<(), String> {
     let file_name = if is_global {
@@ -80,7 +83,15 @@ pub fn ensure_config_file_exists(directory: PathBuf, is_global: bool) -> Result<
     file_path.push(file_name);
 
     if !file_path.exists() {
-        fs::File::create(&file_path).map_err(|e| e.to_string())?;
+        match fs::File::create(&file_path) {
+            Ok(_) => log_message(LogLevel::Info, &format!("Created file: {:?}", file_path)),
+            Err(e) => {
+                log_message(LogLevel::Error, &format!("Failed to create file: {:?}, Error: {}", file_path, e));
+                return Err(e.to_string());
+            }
+        }
+    } else {
+        log_message(LogLevel::Info, &format!("File already exists: {:?}", file_path));
     }
     Ok(())
 }
