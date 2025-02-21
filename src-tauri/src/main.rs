@@ -1,6 +1,7 @@
 mod config {
     pub mod directory_crud_manager;
     pub mod directory_paths_config;
+    pub mod app_configs;
 }
 
 mod storage {
@@ -23,6 +24,9 @@ use crate::config::directory_paths_config::{
     save_network_config,
 };
 
+use crate::config::app_configs::{initialize_config_files, load_app_config, save_app_config};
+
+
 fn main() {
     let log_plugin = LogBuilder::new()
         .clear_targets()
@@ -34,22 +38,27 @@ fn main() {
         .build();
 
     Builder::default()
+        // Използване на плъгините
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(log_plugin)
         .invoke_handler(tauri::generate_handler![
             add_directory,
             get_directories,
             update_directory,
             delete_directory,
-            load_network_and_local_configs, // Регистриране на командите
+            load_network_and_local_configs,
             save_network_config,
             save_local_config,
+            load_app_config,
+            save_app_config,
             ensure_config_file_exists
         ])
         .setup(|_app_handle| {
             utilities::log_message(LogLevel::Info, "Application has started");
             Ok(())
         })
-        .on_window_event(|app_handle, event| {
+        .on_window_event(|_app_handle, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 utilities::log_message(LogLevel::Info, "Window close requested");
             }

@@ -1,13 +1,13 @@
 import {StartScreen} from "./components/StartScreen"
 import { invoke } from "@tauri-apps/api/core";
-import {ConfigProvider} from "./context/ConfigContext";
+import {WatcherProvider} from "./context/WatcherContext";
 import "./App.css";
 
 function App() {
   return (
-    <ConfigProvider>
+    <WatcherProvider>
        <StartScreen />
-   </ConfigProvider>
+   </WatcherProvider>
   );
 }
 

@@ -9,7 +9,14 @@
     "core:default",
     "opener:default",
     "log:default",
-    "dialog:default",
-    "dialog:default"
+    "core:path:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:default",
+    {
+      "identifier": "fs:allow-exists"
+    },
+    "fs:default",
+    "fs:default"
   ]
 }
