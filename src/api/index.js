@@ -1,8 +1,29 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import { exists, writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 
-// Съществуващи функции
+// Добавяме функции за работа с app_config.json
+export async function loadAppConfig() {
+  try {
+    const config = await invoke('load_app_config');
+    console.log('Заредена app конфигурация:', config);
+    return config;
+  } catch (error) {
+    console.error('Грешка при зареждане на app конфигурация:', error);
+    throw error;
+  }
+}
+
+export async function saveAppConfig(config) {
+  try {
+    await invoke('save_app_config', { config });
+    console.log('App конфигурацията е запазена успешно');
+  } catch (error) {
+    console.error('Грешка при запазване на app конфигурация:', error);
+    throw error;
+  }
+}
+
+
 export async function loadNetworkAndLocalConfigs(networkConfigPath, localConfigPath) {
   try {
     const [networkConfigs, localConfigs] = await invoke('load_network_and_local_configs', {

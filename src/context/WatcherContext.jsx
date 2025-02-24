@@ -1,157 +1,125 @@
-// context/WatcherContext.jsx
-import React, { createContext, useReducer } from 'react';
+// src/context/WatcherContext.jsx
+import React, { createContext, useReducer, useEffect } from 'react';
 import { 
+  watcherReducer, 
+  initialState,
+  SET_CONFIG_PATHS,
+  SET_ACTIVE_WATCHERS,
+  ADD_NOTIFICATION,
+  CLEAR_NOTIFICATIONS,
+  SET_IS_WATCHING,
+  SET_DIRECTORIES
+} from './reducers/watcherReducer';
+import { 
+  loadAppConfig, 
+  saveAppConfig,
   loadNetworkAndLocalConfigs,
   saveNetworkConfig,
   saveLocalConfig,
-  addDirectory,
-  updateDirectory,
-  deleteDirectory,
   startWatching 
 } from '../api';
-
-// Action Types
-const SET_CONFIG_PATHS = 'SET_CONFIG_PATHS';
-const SET_ACTIVE_WATCHERS = 'SET_ACTIVE_WATCHERS';
-const ADD_NOTIFICATION = 'ADD_NOTIFICATION';
-const CLEAR_NOTIFICATIONS = 'CLEAR_NOTIFICATIONS';
-const SET_IS_WATCHING = 'SET_IS_WATCHING';
-const SET_DIRECTORIES = 'SET_DIRECTORIES';
-
-const initialState = {
-  configPaths: {
-    globalConfigPath: '',
-    localConfigPath: ''
-  },
-  activeWatchers: [],
-  notifications: [],
-  isWatching: false,
-  globalDirectories: [],
-  localDirectories: []
-};
-
-function watcherReducer(state, action) {
-  switch (action.type) {
-    case SET_CONFIG_PATHS:
-      return { ...state, configPaths: action.payload };
-    case SET_ACTIVE_WATCHERS:
-      return { ...state, activeWatchers: action.payload };
-    case ADD_NOTIFICATION:
-      return { 
-        ...state, 
-        notifications: [...state.notifications, {
-          ...action.payload,
-          id: Date.now()
-        }]
-      };
-    case CLEAR_NOTIFICATIONS:
-      return { ...state, notifications: [] };
-    case SET_IS_WATCHING:
-      return { ...state, isWatching: action.payload };
-    case SET_DIRECTORIES:
-      return {
-        ...state,
-        globalDirectories: action.payload.global,
-        localDirectories: action.payload.local
-      };
-    default:
-      return state;
-  }
-}
 
 export const WatcherContext = createContext(initialState);
 
 export function WatcherProvider({ children }) {
   const [state, dispatch] = useReducer(watcherReducer, initialState);
 
-  // Действия за работа с конфигурацията
-  const setConfigPaths = async (paths) => {
-    dispatch({ type: SET_CONFIG_PATHS, payload: paths });
-  };
-
-  const loadDirectories = async () => {
-    if (state.configPaths.globalConfigPath || state.configPaths.localConfigPath) {
+  useEffect(() => {
+    const initializeConfig = async () => {
       try {
-        const { networkConfigs, localConfigs } = await loadNetworkAndLocalConfigs(
-          state.configPaths.globalConfigPath,
-          state.configPaths.localConfigPath
-        );
+        const config = await loadAppConfig();
         dispatch({ 
-          type: SET_DIRECTORIES, 
-          payload: { 
-            global: networkConfigs, 
-            local: localConfigs 
-          } 
+          type: SET_CONFIG_PATHS, 
+          payload: {
+            globalConfigPath: config.global_config_path,
+            localConfigPath: config.local_config_path
+          }
         });
+
+        // Зареждане на директориите след като имаме пътищата
+        if (config.global_config_path || config.local_config_path) {
+          const { networkConfigs, localConfigs } = await loadNetworkAndLocalConfigs(
+            config.global_config_path,
+            config.local_config_path
+          );
+          dispatch({
+            type: SET_DIRECTORIES,
+            payload: {
+              global: networkConfigs,
+              local: localConfigs
+            }
+          });
+        }
       } catch (error) {
-        console.error('Failed to load directories:', error);
+        console.error('Грешка при инициализация на конфигурацията:', error);
       }
+    };
+
+    initializeConfig();
+  }, []);
+
+  const setConfigPaths = async (paths) => {
+    try {
+      await saveAppConfig({
+        global_config_path: paths.globalConfigPath,
+        local_config_path: paths.localConfigPath,
+        last_update: new Date().toISOString()
+      });
+      
+      dispatch({ type: SET_CONFIG_PATHS, payload: paths });
+    } catch (error) {
+      console.error('Грешка при запазване на конфигурационните пътища:', error);
     }
   };
 
-  const addNewDirectory = async (directory, isGlobal) => {
+  const setActiveWatchers = (watchers) => {
+    dispatch({ type: SET_ACTIVE_WATCHERS, payload: watchers });
+  };
+
+  const addNotification = (notification) => {
+    dispatch({ type: ADD_NOTIFICATION, payload: notification });
+  };
+
+  const clearNotifications = () => {
+    dispatch({ type: CLEAR_NOTIFICATIONS });
+  };
+
+  const setIsWatching = async (isWatching) => {
     try {
-      await addDirectory(directory);
-      const configPath = isGlobal ? 
-        state.configPaths.globalConfigPath : 
-        state.configPaths.localConfigPath;
-      
-      if (isGlobal) {
-        await saveNetworkConfig([...state.globalDirectories, directory], configPath);
-      } else {
-        await saveLocalConfig([...state.localDirectories, directory], configPath);
+      if (isWatching) {
+        await startWatching();
       }
-      await loadDirectories(); // Презареждане на директориите
+      dispatch({ type: SET_IS_WATCHING, payload: isWatching });
     } catch (error) {
-      console.error('Failed to add directory:', error);
+      console.error('Грешка при промяна на състоянието на наблюдение:', error);
     }
   };
 
-  const updateExistingDirectory = async (index, directory, isGlobal) => {
+  const setDirectories = async (global, local) => {
     try {
-      await updateDirectory(index, directory);
-      const configPath = isGlobal ? 
-        state.configPaths.globalConfigPath : 
-        state.configPaths.localConfigPath;
-      
-      const directories = isGlobal ? 
-        state.globalDirectories.map((dir, i) => i === index ? directory : dir) :
-        state.localDirectories.map((dir, i) => i === index ? directory : dir);
-
-      if (isGlobal) {
-        await saveNetworkConfig(directories, configPath);
-      } else {
-        await saveLocalConfig(directories, configPath);
+      if (state.configPaths.globalConfigPath) {
+        await saveNetworkConfig(global, state.configPaths.globalConfigPath);
       }
-      await loadDirectories(); // Презареждане на директориите
+      if (state.configPaths.localConfigPath) {
+        await saveLocalConfig(local, state.configPaths.localConfigPath);
+      }
+      dispatch({ 
+        type: SET_DIRECTORIES, 
+        payload: { global, local } 
+      });
     } catch (error) {
-      console.error('Failed to update directory:', error);
+      console.error('Грешка при запазване на директориите:', error);
     }
   };
 
   const contextValue = {
     ...state,
     setConfigPaths,
-    loadDirectories,
-    addNewDirectory,
-    updateExistingDirectory,
-    startWatching: async () => {
-      try {
-        await startWatching();
-        dispatch({ type: SET_IS_WATCHING, payload: true });
-      } catch (error) {
-        console.error('Failed to start watching:', error);
-      }
-    },
-    stopWatching: () => {
-      dispatch({ type: SET_IS_WATCHING, payload: false });
-    },
-    addNotification: (notification) => {
-      dispatch({ type: ADD_NOTIFICATION, payload: notification });
-    },
-    clearNotifications: () => {
-      dispatch({ type: CLEAR_NOTIFICATIONS });
-    }
+    setActiveWatchers,
+    addNotification,
+    clearNotifications,
+    setIsWatching,
+    setDirectories
   };
 
   return (

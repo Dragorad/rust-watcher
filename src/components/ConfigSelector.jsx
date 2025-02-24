@@ -1,153 +1,144 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import WatcherContext from '../context/WatcherContext.jsx';
+import { exists, writeTextFile } from '@tauri-apps/plugin-fs';
+import { WatcherContext } from '../context/WatcherContext';
+import { ensureConfigFileExists } from '../api';
 
 function ConfigSelector() {
-  const { setGlobalConfigPath, setLocalConfigPath } = useContext(ConfigContext);
+  // Локално състояние
   const [localPath, setLocalPath] = useState('');
   const [globalPath, setGlobalPath] = useState('');
-
-  const { configPaths, setConfigPaths } = useContext(WatcherContext);
   const [error, setError] = useState('');
 
-  const handleSelectFile = async (isGlobal) => {
+  // Контекст
+  const { configPaths, setConfigPaths } = useContext(WatcherContext);
+
+  // При първоначално зареждане проверяваме за съществуващи конфигурации
+  useEffect(() => {
+    const initializeConfigs = async () => {
       try {
-          setError('');
-          const selected = await selectConfigFile(isGlobal);
-          
-          if (selected) {
-              setConfigPaths(prev => ({
-                  ...prev,
-                  [isGlobal ? 'globalConfigPath' : 'localConfigPath']: selected
-              }));
-          }
+        // Опит за създаване/достъп до конфигурационните файлове в default директорията
+        const globalConfigPath = await ensureConfigFileExists('config', true);
+        const localConfigPath = await ensureConfigFileExists('config', false);
+
+        // Обновяване на локалното състояние
+        setGlobalPath(globalConfigPath);
+        setLocalPath(localConfigPath);
+
+        // Обновяване на контекста
+        setConfigPaths({
+          globalConfigPath,
+          localConfigPath
+        });
       } catch (error) {
-          setError(error.toString());
+        setError('Failed to initialize configuration files');
+        console.error(error);
       }
-  };
+    };
 
-  // const handleSelectFile = async (isGlobal) => {
-  //   try {
-  //     const selected = await open({
-  //       multiple: false,
-  //       filters: [{
-  //         name: 'Configuration',
-  //         extensions: ['json']
-  //       }]
-  //     });
+    initializeConfigs();
+  }, []);
 
-  //     if (selected) {
-  //       // Проверка дали файлът съществува
-  //       const fileExists = await exists(selected);
+  // Функция за промяна на конфигурационен файл
+  const handleChangeConfig = async (isGlobal) => {
+    try {
+      setError('');
+      const selected = await open({
+        multiple: false,
+        filters: [{
+          name: 'Configuration',
+          extensions: ['json']
+        }]
+      });
+
+      if (selected) {
+        // Проверка дали файлът съществува
+        const fileExists = await exists(selected);
         
-  //       if (!fileExists) {
-  //         // Създаване на празен конфигурационен файл
-  //         await writeTextFile(selected, JSON.stringify({}, null, 2));
-  //       }
+        if (!fileExists) {
+          // Създаване на празен конфигурационен файл
+          const defaultConfig = {
+            directories: [],
+            settings: {
+              isGlobal
+            }
+          };
+          await writeTextFile(selected, JSON.stringify(defaultConfig, null, 2));
+        }
 
-  //       if (isGlobal) {
-  //         setGlobalPath(selected);
-  //         setGlobalConfigPath(selected);
-  //       } else {
-  //         setLocalPath(selected);
-  //         setLocalConfigPath(selected);
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to select file:', error);
-  //   }
-  // };
+        // Обновяване на локалното състояние
+        if (isGlobal) {
+          setGlobalPath(selected);
+        } else {
+          setLocalPath(selected);
+        }
 
-  // Алтернативен подход с input type="file"
-  const handleFileInput = async (event, isGlobal) => {
-    const files = event.target.files;
-    if (files && files[0]) {
-      const filePath = files[0].path;
-      if (isGlobal) {
-        setGlobalPath(filePath);
-        setGlobalConfigPath(filePath);
-      } else {
-        setLocalPath(filePath);
-        setLocalConfigPath(filePath);
+        // Обновяване на контекста
+        setConfigPaths(prev => ({
+          ...prev,
+          [isGlobal ? 'globalConfigPath' : 'localConfigPath']: selected
+        }));
       }
+    } catch (error) {
+      setError(error.toString());
+      console.error('Failed to change config file:', error);
     }
   };
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Select Configuration Files</h2>
+      <h2 className="text-xl font-bold mb-4">Configuration Files</h2>
       
-      {/* Вариант 1: С бутони */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex flex-col gap-2">
-          <button 
-            onClick={() => handleSelectFile(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Select Global Config
-          </button>
-          <p className="text-sm text-gray-600">
-            Global Config: {globalPath || 'Not selected'}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Global Configuration</span>
+            <button 
+              onClick={() => handleChangeConfig(true)}
+              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Change Location
+            </button>
+          </div>
+          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+            {globalPath || 'Initializing...'}
           </p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <button 
-            onClick={() => handleSelectFile(false)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Select Local Config
-          </button>
-          <p className="text-sm text-gray-600">
-            Local Config: {localPath || 'Not selected'}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Local Configuration</span>
+            <button 
+              onClick={() => handleChangeConfig(false)}
+              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Change Location
+            </button>
+          </div>
+          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+            {localPath || 'Initializing...'}
           </p>
         </div>
       </div>
 
-      {/* Вариант 2: С input type="file" */}
-      <div className="mt-8 space-y-4">
-        <div className="flex flex-col gap-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Global Configuration File
-          </label>
-          <input
-            type="file"
-            accept=".json"
-            onChange={(e) => handleFileInput(e, true)}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-full file:border-0
-              file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Local Configuration File
-          </label>
-          <input
-            type="file"
-            accept=".json"
-            onChange={(e) => handleFileInput(e, false)}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-full file:border-0
-              file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
-          />
-        </div>
-      </div>
-
-      {/* Показване на текущите пътища */}
-      <div className="mt-4 p-4 bg-gray-50 rounded">
-        <h3 className="font-semibold mb-2">Current Configuration</h3>
-        <div className="text-sm text-gray-600">
-          <p>Global: {globalPath || 'Not set'}</p>
-          <p>Local: {localPath || 'Not set'}</p>
+      {/* Статус на конфигурацията */}
+      <div className="mt-6 p-4 bg-gray-50 rounded">
+        <h3 className="font-semibold mb-2">Configuration Status</h3>
+        <div className="text-sm">
+          <div className="flex items-center">
+            <span className={`w-2 h-2 rounded-full mr-2 ${globalPath ? 'bg-green-500' : 'bg-red-500'}`}></span>
+            <span>Global Configuration: {globalPath ? 'Ready' : 'Not Set'}</span>
+          </div>
+          <div className="flex items-center mt-2">
+            <span className={`w-2 h-2 rounded-full mr-2 ${localPath ? 'bg-green-500' : 'bg-red-500'}`}></span>
+            <span>Local Configuration: {localPath ? 'Ready' : 'Not Set'}</span>
+          </div>
         </div>
       </div>
     </div>
